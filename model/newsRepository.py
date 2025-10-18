@@ -22,9 +22,37 @@ class NewsRepository:
             print("[UserRepository][fetchCategories] -> Error al ejecutar query:", e)
             return []
         
-    def fetchAllNews(self, params):
+    def fetchAllNews(self):
         try:
             print("[UserRepository][fetchAllNews] -> Ejecutando query ")
+            with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("""
+                    SELECT
+                        NT.idnoticia,
+                        NT.idnoticiaref,
+                        NT.titulo,
+                        NT.texto,
+                        NT.resumen,
+                        NT.urlNoticia,
+                        NT.imagen,
+                        NT.fecha_publicacion,
+                        NT.autor,
+                        NT.categoria,
+                        NT.estado,
+                        NT.usuario_creo,
+                        TO_CHAR(NT.fecha_creo, 'DD-MM-YYYY HH24:MI:SS') AS fecha_creo,
+                        NT.usuario_modifico,
+                        TO_CHAR(NT.fecha_modifico, 'DD-MM-YYYY HH24:MI:SS') AS fecha_modifico
+                    FROM noticias NT
+                """)
+                return cur.fetchall()
+        except Exception as e:
+            print("[UserRepository][fetchAllNews] -> Error al ejecutar query:", e)
+            return []
+    
+    def fetchNewsByCategory(self, params):
+        try:
+            print("[UserRepository][fetchNewsByCategory] -> Ejecutando query ")
             with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
                 cur.execute("""
                     SELECT
@@ -48,7 +76,7 @@ class NewsRepository:
                 """, params)
                 return cur.fetchall()
         except Exception as e:
-            print("[UserRepository][fetchAllNews] -> Error al ejecutar query:", e)
+            print("[UserRepository][fetchNewsByCategory] -> Error al ejecutar query:", e)
             return []
     
     def fetchSpecificNew(self, params):

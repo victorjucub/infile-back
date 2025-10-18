@@ -81,9 +81,14 @@ def fetchCategories(req: Request, current_user: dict = Depends(get_current_user)
     result = newsActions.fetchCategories()
     return result
 
-@app.get("/fetch-all-news/{categoria}")
+@app.get("/fetch-all-news")
 def fetchAllNews(req: Request, current_user: dict = Depends(get_current_user)):
-    result = newsActions.fetchAllNews({**req.path_params})
+    result = newsActions.fetchAllNews()
+    return result
+
+@app.get("/fetch-news-by-category/{categoria}")
+def fetchNewsByCategory(req: Request, current_user: dict = Depends(get_current_user)):
+    result = newsActions.fetchNewsByCategory({**req.path_params})
     return result
 
 @app.get("/fetch-specific-new/{idnoticia}")

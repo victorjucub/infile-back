@@ -25,11 +25,11 @@ class NewsActions:
                 "rows": []
             }
         
-    def fetchAllNews(self, params):
+    def fetchAllNews(self):
         try:
             print("[NewsActions][fetchAllNews] -> Ejecutando proceso ")
             # result = noticeService.fetchAllNews(params["category"])
-            result = self.repo.fetchAllNews(params)
+            result = self.repo.fetchAllNews()
             return {
                 "flag": "OK",
                 "message": "Información encontrada",
@@ -37,6 +37,23 @@ class NewsActions:
             }
         except Exception as e:
             print("[NewsActions][fetchAllNews] -> Error en proceso ", e)
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+    
+    def fetchNewsByCategory(self, params):
+        try:
+            print("[NewsActions][fetchNewsByCategory] -> Ejecutando proceso ")
+            result = self.repo.fetchNewsByCategory(params)
+            return {
+                "flag": "OK",
+                "message": "Información encontrada",
+                "rows": result
+            }
+        except Exception as e:
+            print("[NewsActions][fetchNewsByCategory] -> Error en proceso ", e)
             return {
                 "flag": "FAIL",
                 "message": e,
