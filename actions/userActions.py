@@ -7,6 +7,22 @@ class UserActions:
     def __init__(self, db: DBConnection):
         self.repo = UserRepository(db)
 
+    def checkAuth(self):
+        try:
+            print("[UserActions][checkAuth] -> Ejecutando proceso ")
+            return {
+                "flag": "OK",
+                "message": "El token es valido",
+                "rows": []
+            }
+        except Exception as e:
+            print("[UserActions][checkAuth] -> Error en proceso ", e)
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+        
     def fetchAllUsers(self):
         try:
             print("[UserActions][fetchAllUsers] -> Ejecutando proceso ")

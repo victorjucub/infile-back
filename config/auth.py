@@ -28,15 +28,30 @@ def verify_access_token(token: str):
 def get_current_user(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
-        raise HTTPException(status_code=401, detail="No autorizado")
+        # raise HTTPException(status_code=401, detail="No autorizado")
+        raise HTTPException(status_code=401, detail={
+            "flag": "FAIL",
+            "message": "No autorizado",
+            "rows": []
+        })
     
     try:
         token = auth_header.split(" ")[1]
     except IndexError:
-        raise HTTPException(status_code=401, detail="Formato de token inválido")
+        # raise HTTPException(status_code=401, detail="Formato de token inválido")
+        raise HTTPException(status_code=401, detail={
+            "flag": "FAIL",
+            "message": "Formato de token inválido",
+            "rows": []
+        })
     
     payload = verify_access_token(token)
     if payload is None:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        # raise HTTPException(status_code=401, detail="Token inválido o expirado")
+        raise HTTPException(status_code=401, detail={
+            "flag": "FAIL",
+            "message": "Token inválido o expirado",
+            "rows": []
+        })
     
     return payload  # por ejemplo {"sub": "7"}

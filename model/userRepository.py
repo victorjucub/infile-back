@@ -143,6 +143,7 @@ class UserRepository:
                         USR.idusuario,
                         USR.nombre,
                         USR.correo,
+                        USR.usuario,
                         USR.clave_vence
                     FROM usuario USR
                     WHERE USR.correo = %(correo)s

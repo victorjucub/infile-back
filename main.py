@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from config.auth import get_current_user
 from config.connection import DBConnection
 # ------------ users
@@ -12,6 +13,21 @@ from actions.newsActions import NewsActions
 
 app = FastAPI()
 
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Inicializamos la conexión a la BD y la capa de usuario
 db = DBConnection()
 userActions = UserActions(db)
@@ -19,7 +35,12 @@ newsActions = NewsActions(db)
 
 
 # ------------------------------------------------- USERS
-@app.get("/")
+@app.get("/check-auth")
+def checkAuth(current_user: dict = Depends(get_current_user)):
+    result = userActions.checkAuth()
+    return result
+
+@app.get("/fetch-all-users")
 def fetchAllUsers(current_user: dict = Depends(get_current_user)):
     result = userActions.fetchAllUsers()
     return result
