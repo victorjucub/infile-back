@@ -258,7 +258,7 @@ class UserActions:
             if len(result)==0:
                 return {
                     "flag": "FAIL",
-                    "message": "Las credenciales no son correctas",
+                    "message": "Las credenciales no son correctas o su usuario se encuentra inactivo",
                     "rows": []
                 }
             

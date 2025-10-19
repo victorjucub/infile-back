@@ -61,7 +61,7 @@ class UserRepository:
                         estado, usuario_creo, fecha_creo
                     ) VALUES (
                         UPPER(%(nombre)s), %(correo)s, %(usuario)s, %(clave)s, '2024-01-01',
-                        1, %(usuario_creo)s, NOW()
+                        0, %(usuario_creo)s, NOW()
                     )
                     RETURNING idusuario
                 """, params)
@@ -139,6 +139,7 @@ class UserRepository:
                     FROM usuario USR
                     WHERE USR.correo = %(correo)s
                     AND USR.clave = %(clave)s
+                    AND USR.estado = 1
                 """, params)
                 return cur.fetchall()
         except Exception as e:

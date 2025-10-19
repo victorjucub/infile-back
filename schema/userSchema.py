@@ -7,7 +7,7 @@ class UserSchema(BaseModel):
     usuario: str
     correo: str
     clave: str
-    usuario_creo: str
+    usuario_creo: Optional[str]
 
 class UserUpdateSchema(BaseModel):
     idusuario: Optional[str]
