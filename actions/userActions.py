@@ -1,8 +1,11 @@
 from model.userRepository import UserRepository
 from config.auth import create_access_token
 from config.connection import DBConnection
+from service.emailService import EmailService
+
 import hashlib
 
+# emailService = EmailService()
 class UserActions:
     def __init__(self, db: DBConnection):
         self.repo = UserRepository(db)
@@ -99,8 +102,9 @@ class UserActions:
                     "rows": []
                 }
 
-            # data["idusuario"] = result
-            # "rows": [data]
+            # ✅ Enviar correo de bienvenida
+            EmailService.send_welcome_email(params["correo"], params["nombre"])
+
             return {
                 "flag": "OK",
                 "message": "Se creó correctamente el registro",
