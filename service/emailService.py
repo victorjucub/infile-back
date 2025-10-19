@@ -26,7 +26,7 @@ class EmailService:
         """
 
         msg = MIMEMultipart()
-        msg["From"] = email.EMAIL_USER
+        msg["From"] = "[INFILE NEWS] Victor Jucub"
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "html"))
@@ -60,7 +60,7 @@ class EmailService:
         """
 
         msg = MIMEMultipart()
-        msg["From"] = email.EMAIL_USER
+        msg["From"] = "[INFILE NEWS] Victor Jucub"
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "html"))
@@ -94,7 +94,7 @@ class EmailService:
         """
 
         msg = MIMEMultipart()
-        msg["From"] = email.EMAIL_USER
+        msg["From"] = "[INFILE NEWS] Victor Jucub"
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "html"))

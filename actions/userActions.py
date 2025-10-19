@@ -279,7 +279,7 @@ class UserActions:
             if len(result)==0:
                 return {
                     "flag": "FAIL",
-                    "message": "Las credenciales no son correctas o su usuario",
+                    "message": "Las credenciales no son correctas",
                     "rows": []
                 }
                 
@@ -287,12 +287,15 @@ class UserActions:
             userState = result[0]["estado"]
             tokenActivate = params.get("process")
 
-            # verifica si el usario esta inactivo y si esta intentando entrar SIN el link de activación de correo
+            # print('userState ::::::::::::: ', userState)
+            # print('tokenActivate ::::::::::::: ', tokenActivate)
+
+            # verifica si el usuario esta inactivo y si esta intentando entrar SIN el link de activación de correo
             if int(userState) == 0 and tokenActivate == '' :
                 return {
                     "flag": "FAIL",
-                    "message": "Las credenciales no son correctas o su usuario",
-                    "rows": [{"tokenActivate": tokenActivate}]
+                    "message": "Las credenciales no son correctas",
+                    "rows": []
                 }
             
             # verifica si el usario esta inactivo y si esta intentando entrar CON el link de activación de correo
@@ -301,13 +304,20 @@ class UserActions:
                 if len(resultToken)==0:
                     return {
                         "flag": "FAIL",
-                        "message": "Las credenciales no son correctas o su usuario",
+                        "message": "Las credenciales no son correctas",
                         "rows": []
                     }
-                print("resultToken ::::::::::::: ", resultToken)
-                resultActivate = self.repo.activateUser({"idususario": resultToken[0]["idusuario"]})
+                
+                idusuario = resultToken[0]["idusuario"]
+                resultActivate = self.repo.activateUser({"idusuario": idusuario})
 
-                print("resultActivate ::::::::::::: ", resultActivate)
+                if not resultActivate :
+                    return {
+                        "flag": "FAIL",
+                        "message": "Hubo un problema al intentar activar su usuario",
+                        "rows": []
+                    }
+
 
 
             # Si las credenciales son correctas, generamos JWT
@@ -340,6 +350,7 @@ class UserActions:
             correo = idinfo.get("email")
             nombre = idinfo.get("name")
             google_sub = idinfo.get("sub")
+            usuario = correo.split("@")[0]
 
             # Verifica si ya existe el usuario mediante su correo
             result = self.repo.fetchUserByEmail({"correo": correo})
@@ -348,7 +359,7 @@ class UserActions:
                 userToCreate = {
                     "nombre": nombre,
                     "correo": correo,
-                    "usuario": correo.split("@")[0],  # puedes ajustar el usuario
+                    "usuario": usuario,  # puedes ajustar el usuario
                     "clave": google_sub,  # opcional: almacenar hash de google_sub
                     "token_activate": '',
                     "estado": '1',
@@ -366,15 +377,18 @@ class UserActions:
             else:
                 idusuario = result[0]["idusuario"]
 
+            userInfo = self.repo.fetchSpecificUser({"idusuario": idusuario})
+
             # genera token para que el usuario inice sesión
             token = createAccessToken({"sub": idusuario})
             return {
                 "flag": "OK",
                 "message": "Inicio de sesión correcto",
                 "rows": [{
-                    "idusuario": idusuario,
-                    "nombre": nombre,
-                    "correo": correo,
+                    "idusuario": userInfo[0]["idusuario"],
+                    "nombre": userInfo[0]["nombre"],
+                    "correo": userInfo[0]["correo"],
+                    "usuario": userInfo[0]["usuario"],
                     "token": token
                 }]
             }

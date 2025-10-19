@@ -64,27 +64,3 @@ def createPasswordRestoreToken(user_id: int):
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
-
-def checkCustomToken(restorePasswrodToken):
-    restorePasswrodToken
-    if not restorePasswrodToken:
-        return {
-            "flag": "FAIL",
-            "message": "No autorizado",
-            "rows": []
-        }
-    
-    payload = verifyAccessToken(restorePasswrodToken)
-    if payload is None:
-        return {
-            "flag": "FAIL",
-            "message": "Token inválido o expirado",
-            "rows": []
-        }
-    
-    return {
-        "flag": "OK",
-        "message": "Token validado correctamente",
-        "rows": [{**payload}]
-    }
-
