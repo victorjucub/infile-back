@@ -29,3 +29,11 @@ class UserLoginSchema(BaseModel):
 
 class GoogleLoginSchema(BaseModel):
     id_token: str
+
+class ForgotPasswordSchema(BaseModel):
+    correo: str
+
+class RestorePasswordSchema(BaseModel):
+    correo: str
+    clave: str
+    process: str

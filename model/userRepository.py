@@ -169,6 +169,7 @@ class UserRepository:
                 cur.execute("""
                     SELECT
                         USR.idusuario,
+                        USR.nombre,
                         USR.correo
                     FROM usuario USR
                     WHERE USR.correo = %(correo)s

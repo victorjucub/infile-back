@@ -5,8 +5,9 @@ import jwt  # pyjwt
 SECRET_KEY = "mi_clave_super_secreta"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+PASSWORD_RESTORE_TOKEN_EXPIRE_MINUTES = 120
 
-def create_access_token(user_id: int):
+def createAccessToken(user_id: int):
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": str(user_id),  # identificador del usuario
@@ -15,7 +16,7 @@ def create_access_token(user_id: int):
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
-def verify_access_token(token: str):
+def verifyAccessToken(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
@@ -24,8 +25,7 @@ def verify_access_token(token: str):
     except jwt.InvalidTokenError:
         return None  # token inválido
 
-
-def get_current_user(request: Request):
+def getCurrentUser(request: Request):
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         # raise HTTPException(status_code=401, detail="No autorizado")
@@ -45,7 +45,7 @@ def get_current_user(request: Request):
             "rows": []
         })
     
-    payload = verify_access_token(token)
+    payload = verifyAccessToken(token)
     if payload is None:
         # raise HTTPException(status_code=401, detail="Token inválido o expirado")
         raise HTTPException(status_code=401, detail={
@@ -55,3 +55,36 @@ def get_current_user(request: Request):
         })
     
     return payload  # por ejemplo {"sub": "7"}
+
+def createPasswordRestoreToken(user_id: int):
+    expire = datetime.utcnow() + timedelta(minutes=PASSWORD_RESTORE_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        "sub": str(user_id),  # identificador del usuario
+        "exp": expire         # fecha de expiración
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
+def checkCustomToken(restorePasswrodToken):
+    restorePasswrodToken
+    if not restorePasswrodToken:
+        return {
+            "flag": "FAIL",
+            "message": "No autorizado",
+            "rows": []
+        }
+    
+    payload = verifyAccessToken(restorePasswrodToken)
+    if payload is None:
+        return {
+            "flag": "FAIL",
+            "message": "Token inválido o expirado",
+            "rows": []
+        }
+    
+    return {
+        "flag": "OK",
+        "message": "Token validado correctamente",
+        "rows": [{**payload}]
+    }
+

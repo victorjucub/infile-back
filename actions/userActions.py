@@ -1,15 +1,16 @@
 from model.userRepository import UserRepository
-from config.auth import create_access_token
+from config.auth import createAccessToken, createPasswordRestoreToken, verifyAccessToken
 from config.connection import DBConnection
 from service.emailService import EmailService
 from utils.generalUtils import GeneralUtils
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
+import ast
 
 import hashlib
 
 generalUtils = GeneralUtils()
-# emailService = EmailService()
+emailService = EmailService()
 class UserActions:
     def __init__(self, db: DBConnection):
         self.repo = UserRepository(db)
@@ -117,8 +118,8 @@ class UserActions:
                     "rows": []
                 }
 
-            # ✅ Enviar correo de bienvenida
-            EmailService.send_welcome_email(params["correo"], params["nombre"], params["token_activate"])
+            # Enviar correo de bienvenida
+            emailService.sendWelcomeEmail(params["correo"], params["nombre"], params["token_activate"])
 
             return {
                 "flag": "OK",
@@ -312,7 +313,7 @@ class UserActions:
             # Si las credenciales son correctas, generamos JWT
             user_data = result[0]
             token_data = {"sub": user_data["idusuario"]}  # payload del token
-            token = create_access_token(token_data)
+            token = createAccessToken(token_data)
             
             return {
                 "flag": "OK",
@@ -343,8 +344,8 @@ class UserActions:
             # Verifica si ya existe el usuario mediante su correo
             result = self.repo.fetchUserByEmail({"correo": correo})
             if len(result) == 0:
-                
-                new_user = {
+                print("no existe el correo :::::::::::::::::::: ", len(result))
+                userToCreate = {
                     "nombre": nombre,
                     "correo": correo,
                     "usuario": correo.split("@")[0],  # puedes ajustar el usuario
@@ -354,14 +355,19 @@ class UserActions:
                     "usuario_creo": "GOOGLE_OAUTH"
                 }
 
-                resultSave = self.repo.saveUser(new_user)
+                print("userToCreate :::::::::::::::::::: ", userToCreate)
+                resultSave = self.repo.saveUser(userToCreate)
 
                 idusuario = resultSave["lastInsertId"]
+
+                # Enviar correo de bienvenida
+                emailService.sendWelcomeGoogleEmail(correo, nombre)
+
             else:
                 idusuario = result[0]["idusuario"]
 
             # genera token para que el usuario inice sesión
-            token = create_access_token({"sub": idusuario})
+            token = createAccessToken({"sub": idusuario})
             return {
                 "flag": "OK",
                 "message": "Inicio de sesión correcto",
@@ -374,6 +380,124 @@ class UserActions:
             }
 
         except Exception as e:
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+    
+    def forgotPassword(self, params):
+        try:
+            print("[UserActions][forgotPassword] -> Ejecutando proceso ")
+            
+            # verifica si el correo ya existe
+            resultCorreo = self.repo.existeCorreo(params)
+            if len(resultCorreo)>0:
+                print("existe el correo ", len(resultCorreo))
+                # Crea un token para enviarselo al usuario:
+                idusuario = resultCorreo[0]["idusuario"]
+                correo = resultCorreo[0]["correo"]
+                nombre = resultCorreo[0]["nombre"]
+
+                token_data = {"sub": idusuario}  # payload del token
+
+                token_password = createPasswordRestoreToken(token_data)
+
+                # Enviar correo de bienvenida
+                emailService.sendRestorePasswordEmail(correo, nombre, token_password)
+
+            return {
+                "flag": "OK",
+                "message": "Se ha recibido tu solicitud para restablecer contraseña, te enviaremos un correo con las instrucciones.",
+                "rows": []
+            }
+        except Exception as e:
+            print("[UserActions][forgotPassword] -> Error en proceso ", e)
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+        
+    def restorePassword(self, params):
+        try:
+            print("[UserActions][restorePassword] -> Ejecutando proceso ")
+
+            # validamos que el token sea valido
+            token = params["process"]
+            resultVerifyToken = verifyAccessToken(token)
+            if resultVerifyToken is None:
+                return {
+                    "flag": "FAIL",
+                    "message": "No es posible continuar, la solicitud para restablecer contraseña no es valida",
+                    "rows": []
+                }
+            
+            # extraemos id de usuario
+            data = ast.literal_eval(resultVerifyToken["sub"])
+            idusuario = data["sub"]
+            resultInfo = self.repo.fetchSpecificUser({"idusuario": idusuario})
+
+            print('resultInfo :::::::: ', resultInfo)
+
+            # validamos correo
+            resultCorreo = self.repo.existeCorreo(params)
+            if not (len(resultCorreo)>0):
+                return {
+                    "flag": "FAIL",
+                    "message": "No es posible continuar, la solicitud para restablecer contraseña no es valida correo",
+                    "rows": []
+                }
+
+            print('resultCorreo :::::::: ', resultCorreo)
+
+            # validamos que el usuario que hace la solicitud coincida con el del token
+            equalIdusuario = resultInfo[0]["idusuario"] == resultCorreo[0]["idusuario"]
+            equalCorreo = resultInfo[0]["correo"] == resultCorreo[0]["correo"]
+            if (not equalIdusuario) or (not equalCorreo) :
+                return {
+                    "flag": "FAIL",
+                    "message": "No es posible continuar, la solicitud para restablecer contraseña no es valida",
+                    "rows": []
+                }
+            
+            # Obtenemos la clave actual
+            resultCurrent = self.repo.getCurrentPassword({"idusuario": idusuario})
+            print("resultCurrent ::::::::::::::::::::::::::: ", resultCurrent)
+
+            currentPass = resultCurrent[0]["clave"]
+            lastPass = resultCurrent[0]["clave_ultima"]
+
+            # Recuperamos claves ingresadas por el usuario
+            clave = params.get("clave")
+            clave_hash = hashlib.sha256(clave.encode("utf-8")).hexdigest()
+
+            # validamos que no ingrese una clave usada anteriormente
+            if clave_hash == lastPass :
+                return {
+                    "flag": "FAIL",
+                    "message": "La clave indicada se ha usado recientemente, intente con una nueva contraseña",
+                    "rows": []
+                }
+            
+            params["clave"] = clave_hash
+            params["clave_ultima"] = currentPass
+
+            result = self.repo.updatePasswordUser({**params, "idusuario": idusuario})
+            if not result:
+                return {
+                    "flag": "FAIL",
+                    "message": "No fue posible actualizar la contraseña",
+                    "rows": []
+                }
+            
+            return {
+                "flag": "OK",
+                "message": "Se actualizó correctamente la contraseña",
+                "rows": []
+            }
+        except Exception as e:
+            print("[UserActions][restorePassword] -> Error en proceso ", e)
             return {
                 "flag": "FAIL",
                 "message": e,
