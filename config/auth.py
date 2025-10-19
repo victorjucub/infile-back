@@ -7,6 +7,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 PASSWORD_RESTORE_TOKEN_EXPIRE_MINUTES = 120
 
+REFRESH_TOKEN_EXPIRE_DAYS = 30  # duración estándar
+NEVER_EXPIRE = 10*365  # 10 años para "recordarme"
+
 def createAccessToken(user_id: int):
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
@@ -64,3 +67,25 @@ def createPasswordRestoreToken(user_id: int):
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
+
+
+def createRefreshToken(user_id: int, remember_me: str = 'no'):
+    if remember_me == 'si':
+        expire = datetime.utcnow() + timedelta(days=NEVER_EXPIRE)
+    else:
+        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    payload = {
+        "sub": str(user_id),
+        "exp": expire
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
+def verifyRefreshToken(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None

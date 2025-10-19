@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from config.auth import getCurrentUser
+from config.auth import getCurrentUser, verifyRefreshToken, createAccessToken
 from config.connection import DBConnection
 # ------------ users
 from actions.userActions import UserActions
@@ -14,9 +15,15 @@ from actions.newsActions import NewsActions
 
 app = FastAPI()
 
+origins = [
+    'http://localhost',
+    'http://localhost:8000',
+    'http://127.0.0.1',
+    'http://127.0.0.1:8000',
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,6 +96,35 @@ def restorePassword(body:RestorePasswordSchema):
     # Se parsea a un objeto {} (body.model_dump)
     result = userActions.restorePassword({**body.model_dump()})
     return result
+
+
+class RefreshTokenSchema(BaseModel):
+    refresh_token: str
+
+@app.post("/refresh-token")
+def refresh_token(body: RefreshTokenSchema):
+    payload = verifyRefreshToken(body.refresh_token)
+    if not payload:
+        return {"flag": "FAIL", "message": "Refresh token inválido", "rows": []}
+
+    tokens = userActions.repo.getRefreshToken(body.refresh_token)
+    if len(tokens) == 0 or not tokens[0]["estado"]:
+        return {"flag": "FAIL", "message": "Refresh token revocado", "rows": []}
+
+    idusuario = payload["sub"]
+    new_access = createAccessToken(idusuario)
+    return {"flag": "OK", "message": "Token renovado", "rows": [{"access_token": new_access}]}
+
+class RevokeSchema(BaseModel):
+    refresh_token: str
+
+@app.post("/logout")
+def logout(body: RevokeSchema):
+    ok = userActions.repo.revokeRefreshToken(body.refresh_token)
+    if not ok:
+        return {"flag": "FAIL", "message": "No se pudo revocar el token", "rows": []}
+    return {"flag": "OK", "message": "Sesión cerrada", "rows": []}
+
 # ------------------------------------------------- NOTICES
 
 @app.get("/fetch-categories")

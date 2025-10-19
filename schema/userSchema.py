@@ -25,6 +25,7 @@ class UserUpdateSchemaWhitPass(BaseModel):
 class UserLoginSchema(BaseModel):
     correo: str
     clave: str
+    recordarme: str
     process: Optional[str]
 
 class GoogleLoginSchema(BaseModel):

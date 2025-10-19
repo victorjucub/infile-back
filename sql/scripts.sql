@@ -53,3 +53,13 @@ CREATE TABLE noticias (
     fecha_modifico TIMESTAMP DEFAULT NULL,
     CONSTRAINT pk_noticia PRIMARY KEY (idnoticia)
 );
+
+
+DROP TABLE IF EXISTS refresh_tokens;
+CREATE TABLE refresh_tokens (
+    idtoken SERIAL PRIMARY KEY,
+    idusuario INTEGER NOT NULL,
+    token TEXT NOT NULL,
+    estado BOOLEAN DEFAULT TRUE,
+    fecha_creo TIMESTAMP DEFAULT NOW()
+);

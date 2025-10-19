@@ -242,3 +242,44 @@ class UserRepository:
             print("[UserRepository][activateUser] -> Error al ejecutar query:", e)
             self.db.rollback()
             return False
+        
+    def saveRefreshToken(self, params):
+        try:
+            with self.db.get_cursor() as cur:
+                cur.execute("""
+                    INSERT INTO refresh_tokens(idusuario, token, estado)
+                    VALUES (%(idusuario)s, %(token)s, TRUE)
+                """, params)
+            self.db.commit()
+            return True
+        except Exception as e:
+            print("saveRefreshToken ->", e)
+            self.db.rollback()
+            return False
+
+    def getRefreshToken(self, token):
+        try:
+            with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("""
+                    SELECT * FROM refresh_tokens
+                    WHERE token = %(token)s
+                """, {"token": token})
+                return cur.fetchall()
+        except Exception as e:
+            print("getRefreshToken ->", e)
+            return []
+
+    def revokeRefreshToken(self, token):
+        try:
+            with self.db.get_cursor() as cur:
+                cur.execute("""
+                    UPDATE refresh_tokens
+                    SET estado = FALSE
+                    WHERE token = %(token)s
+                """, {"token": token})
+            self.db.commit()
+            return True
+        except Exception as e:
+            print("revokeRefreshToken ->", e)
+            self.db.rollback()
+            return False
