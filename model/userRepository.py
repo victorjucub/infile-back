@@ -57,10 +57,10 @@ class UserRepository:
             with self.db.get_cursor() as cur:
                 cur.execute("""
                     INSERT INTO usuario(
-                        nombre, correo, usuario, clave, clave_vence,
+                        nombre, correo, usuario, clave, clave_vence, token_activate,
                         estado, usuario_creo, fecha_creo
                     ) VALUES (
-                        UPPER(%(nombre)s), %(correo)s, %(usuario)s, %(clave)s, '2024-01-01',
+                        UPPER(%(nombre)s), %(correo)s, %(usuario)s, %(clave)s, '2024-01-01', %(token_activate)s,
                         0, %(usuario_creo)s, NOW()
                     )
                     RETURNING idusuario
@@ -135,11 +135,11 @@ class UserRepository:
                         USR.nombre,
                         USR.correo,
                         USR.usuario,
-                        USR.clave_vence
+                        USR.clave_vence,
+                        USR.estado
                     FROM usuario USR
                     WHERE USR.correo = %(correo)s
                     AND USR.clave = %(clave)s
-                    AND USR.estado = 1
                 """, params)
                 return cur.fetchall()
         except Exception as e:
@@ -207,3 +207,36 @@ class UserRepository:
         except Exception as e:
             print("[UserRepository][fetchUserByEmail] -> Error al ejecutar query:", e)
             return []
+    
+
+    def checkTokenActivate(self, params):
+        try:
+            print("[UserRepository][checkTokenActivate] -> Ejecutando query ")
+            with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("""
+                    SELECT
+                        USR.idusuario,
+                        USR.token_activate
+                    FROM usuario USR
+                    WHERE USR.token_activate = %(token_activate)s
+                """, params)
+                return cur.fetchall()
+        except Exception as e:
+            print("[UserRepository][checkTokenActivate] -> Error al ejecutar query:", e)
+            return []
+    
+    def activateUser(self, params):
+        try:
+            print("[UserRepository][activateUser] -> Ejecutando query ")
+            with self.db.get_cursor() as cur:
+                cur.execute("""
+                    UPDATE usuario SET
+                        estado = 1
+                    WHERE idusuario = %(idusuario)s
+                """, params)
+            self.db.commit()
+            return True
+        except Exception as e:
+            print("[UserRepository][activateUser] -> Error al ejecutar query:", e)
+            self.db.rollback()
+            return False

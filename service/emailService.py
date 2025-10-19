@@ -5,19 +5,24 @@ from config import email
 
 class EmailService:
 
+    def __init__(self):
+        self.INFILE_NEWS_URL = ''
+
     @staticmethod
-    def send_welcome_email(to_email: str, user_name: str):
-        subject = "Bienvenido a nuestra plataforma"
+    def send_welcome_email(to_email: str, user_name: str, token_activate: str):
+        subject = "[IFILE NEWS]: Bienvenido a nuestra plataforma !"
         body = f"""
-        <html>
-            <body>
-                <h2>Hola {user_name},</h2>
-                <p>Tu cuenta ha sido creada exitosamente 🎉</p>
-                <p>Gracias por registrarte en nuestra plataforma.</p>
-                <br/>
-                <p>Saludos,<br>El equipo de INFILE</p>
-            </body>
-        </html>
+            <html>
+                <body>
+                    <h2>Hola {user_name},</h2>
+                    <p>Tu cuenta ha sido creada exitosamente 🎉</p>
+                    <p>Gracias por registrarte en nuestra plataforma.</p>
+                    <br/>
+                    <p>Para confirmar tu cuenta, debes acceder a este link: http://localhost/infile-front/vistas/login.php?process={token_activate}</p>
+                    <br/>
+                    <p>Saludos,<br>El equipo de INFILE</p>
+                </body>
+            </html>
         """
 
         msg = MIMEMultipart()

@@ -2,11 +2,13 @@ from model.userRepository import UserRepository
 from config.auth import create_access_token
 from config.connection import DBConnection
 from service.emailService import EmailService
+from utils.generalUtils import GeneralUtils
 from google.oauth2 import id_token
 from google.auth.transport import requests as grequests
 
 import hashlib
 
+generalUtils = GeneralUtils()
 # emailService = EmailService()
 class UserActions:
     def __init__(self, db: DBConnection):
@@ -73,6 +75,7 @@ class UserActions:
         try:
             print("[UserActions][saveUser] -> Ejecutando proceso ")
             
+            # verifica si el usuario ya existe
             resultUsuario = self.repo.existeUsuario(params)
             if len(resultUsuario)>0:
                 return {
@@ -81,6 +84,7 @@ class UserActions:
                     "rows": []
                 }
             
+            # verifica si el correo ya existe
             resultCorreo = self.repo.existeCorreo(params)
             if len(resultCorreo)>0:
                 return {
@@ -89,11 +93,19 @@ class UserActions:
                     "rows": []
                 }
 
+            # encripta la clave
             clave = params.get("clave")
             clave_hash = hashlib.sha256(clave.encode("utf-8")).hexdigest()
             params["clave"] = clave_hash
 
+            # remueve idusuario para el insert
             params.pop("idusuario", None)
+
+            # crea un token para activar el usuario
+            token_activate = generalUtils.randToken(10)
+            print('token_activate :::::::::::::: ', token_activate)
+
+            params["token_activate"] = token_activate
             print(params)
             
             result = self.repo.saveUser(params)
@@ -105,7 +117,7 @@ class UserActions:
                 }
 
             # ✅ Enviar correo de bienvenida
-            EmailService.send_welcome_email(params["correo"], params["nombre"])
+            EmailService.send_welcome_email(params["correo"], params["nombre"], params["token_activate"])
 
             return {
                 "flag": "OK",
@@ -260,14 +272,40 @@ class UserActions:
             params.pop("idusuario", None)
             params.pop("nombre", None)
 
+            # se verifica credenciales
             result = self.repo.verifyCredentials(params)
             if len(result)==0:
                 return {
                     "flag": "FAIL",
-                    "message": "Las credenciales no son correctas o su usuario se encuentra inactivo",
+                    "message": "Las credenciales no son correctas o su usuario",
                     "rows": []
                 }
+                
             
+            userState = result[0]["estado"]
+            tokenActivate = params.get("process")
+
+            # verifica si el usario esta inactivo y si esta intentando entrar SIN el link de activación de correo
+            if int(userState) == 0 and tokenActivate == '' :
+                return {
+                    "flag": "FAIL",
+                    "message": "Las credenciales no son correctas o su usuario",
+                    "rows": [{"tokenActivate": tokenActivate}]
+                }
+            
+            # verifica si el usario esta inactivo y si esta intentando entrar CON el link de activación de correo
+            if int(userState) == 0 and tokenActivate != '' :
+                resultToken = self.repo.checkTokenActivate({"token_activate": tokenActivate})
+                if len(resultToken)==0:
+                    return {
+                        "flag": "FAIL",
+                        "message": "Las credenciales no son correctas o su usuario",
+                        "rows": []
+                    }
+                
+                resultActivate = self.repo.activateUser({"idususario": resultToken[0]["idusuario"]})
+
+
             # Si las credenciales son correctas, generamos JWT
             user_data = result[0]
             token_data = {"sub": user_data["idusuario"]}  # payload del token
