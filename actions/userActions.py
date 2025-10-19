@@ -2,6 +2,8 @@ from model.userRepository import UserRepository
 from config.auth import create_access_token
 from config.connection import DBConnection
 from service.emailService import EmailService
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
 
 import hashlib
 
@@ -273,11 +275,65 @@ class UserActions:
             
             return {
                 "flag": "OK",
-                "message": "Loggeado",
+                "message": "Inicio de sesión correcto",
                 "rows": [{**result[0], "token": token}]
             }
         except Exception as e:
             print("[UserActions][verifyCredentials] -> Error en proceso ", e)
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+        
+    def loginWithGoogle(self, params):
+        try:
+            # Validar el token de Google
+            idinfo = id_token.verify_oauth2_token(
+                params["id_token"],
+                grequests.Request(),
+                "82223109385-aip7svi9hpi9oiro18hj4duv9amsu76j.apps.googleusercontent.com"
+            )
+
+            correo = idinfo.get("email")
+            nombre = idinfo.get("name")
+            google_sub = idinfo.get("sub")
+
+            # Buscar usuario por correo
+            result = self.repo.fetchUserByEmail({"correo": correo})
+            print('result :::::::::::::::::::::: ', result)
+            if len(result) == 0:
+                # Crear usuario automáticamente si no existe
+                new_user = {
+                    "nombre": nombre,
+                    "correo": correo,
+                    "usuario": correo.split("@")[0],  # puedes ajustar el usuario
+                    "clave": google_sub,  # opcional: almacenar hash de google_sub
+                    "usuario_creo": "GOOGLE_OAUTH"
+                }
+                resultSave = self.repo.saveUser(new_user)
+                
+                user_id = resultSave["lastInsertId"]
+            else:
+                user_id = result[0]["idusuario"]
+
+            print('user_id :::::::::::::::::::::: ', user_id)
+            # Generar JWT interno
+            token = create_access_token({"sub": user_id})
+            print('token :::::::::::::::::::::: ', token)
+
+            return {
+                "flag": "OK",
+                "message": "Inicio de sesión correcto",
+                "rows": [{
+                    "idusuario": user_id,
+                    "nombre": nombre,
+                    "correo": correo,
+                    "token": token
+                }]
+            }
+
+        except Exception as e:
             return {
                 "flag": "FAIL",
                 "message": e,

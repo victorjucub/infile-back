@@ -193,3 +193,17 @@ class UserRepository:
         except Exception as e:
             print("[UserRepository][existeCorreo] -> Error al ejecutar query:", e)
             return []
+    
+    def fetchUserByEmail(self, params):
+        try:
+            print("[UserRepository][fetchUserByEmail] -> Ejecutando query")
+            with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("""
+                    SELECT *
+                    FROM usuario
+                    WHERE correo = %(correo)s
+                """, params)
+                return cur.fetchall()
+        except Exception as e:
+            print("[UserRepository][fetchUserByEmail] -> Error al ejecutar query:", e)
+            return []

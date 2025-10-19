@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+
 from config.auth import get_current_user
 from config.connection import DBConnection
 # ------------ users
 from actions.userActions import UserActions
-from schema.userSchema import UserSchema, UserLoginSchema, UserUpdateSchema, UserUpdateSchemaWhitPass
+from schema.userSchema import UserSchema, UserLoginSchema, UserUpdateSchema, UserUpdateSchemaWhitPass, GoogleLoginSchema
 
 # ------------ users
 from actions.newsActions import NewsActions
@@ -13,16 +14,9 @@ from actions.newsActions import NewsActions
 
 app = FastAPI()
 
-origins = [
-    "http://localhost.tiangolo.com",
-    "https://localhost.tiangolo.com",
-    "http://localhost",
-    "http://localhost:8080",
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,6 +73,10 @@ def verifyCredentials(body:UserLoginSchema):
     result = userActions.verifyCredentials({**body.model_dump()})
     return result
 
+@app.post("/login-google")
+def loginGoogle(body: GoogleLoginSchema):
+    result = userActions.loginWithGoogle({**body.model_dump()})
+    return result
 
 # ------------------------------------------------- NOTICES
 
