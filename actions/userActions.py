@@ -106,6 +106,7 @@ class UserActions:
             print('token_activate :::::::::::::: ', token_activate)
 
             params["token_activate"] = token_activate
+            params["estado"] = '0' # el usuario se registra inactivo para pedir cofirm por correo
             print(params)
             
             result = self.repo.saveUser(params)
@@ -302,8 +303,10 @@ class UserActions:
                         "message": "Las credenciales no son correctas o su usuario",
                         "rows": []
                     }
-                
+                print("resultToken ::::::::::::: ", resultToken)
                 resultActivate = self.repo.activateUser({"idususario": resultToken[0]["idusuario"]})
+
+                print("resultActivate ::::::::::::: ", resultActivate)
 
 
             # Si las credenciales son correctas, generamos JWT
@@ -337,34 +340,33 @@ class UserActions:
             nombre = idinfo.get("name")
             google_sub = idinfo.get("sub")
 
-            # Buscar usuario por correo
+            # Verifica si ya existe el usuario mediante su correo
             result = self.repo.fetchUserByEmail({"correo": correo})
-            print('result :::::::::::::::::::::: ', result)
             if len(result) == 0:
-                # Crear usuario automáticamente si no existe
+                
                 new_user = {
                     "nombre": nombre,
                     "correo": correo,
                     "usuario": correo.split("@")[0],  # puedes ajustar el usuario
                     "clave": google_sub,  # opcional: almacenar hash de google_sub
+                    "token_activate": '',
+                    "estado": '1',
                     "usuario_creo": "GOOGLE_OAUTH"
                 }
+
                 resultSave = self.repo.saveUser(new_user)
-                
-                user_id = resultSave["lastInsertId"]
+
+                idusuario = resultSave["lastInsertId"]
             else:
-                user_id = result[0]["idusuario"]
+                idusuario = result[0]["idusuario"]
 
-            print('user_id :::::::::::::::::::::: ', user_id)
-            # Generar JWT interno
-            token = create_access_token({"sub": user_id})
-            print('token :::::::::::::::::::::: ', token)
-
+            # genera token para que el usuario inice sesión
+            token = create_access_token({"sub": idusuario})
             return {
                 "flag": "OK",
                 "message": "Inicio de sesión correcto",
                 "rows": [{
-                    "idusuario": user_id,
+                    "idusuario": idusuario,
                     "nombre": nombre,
                     "correo": correo,
                     "token": token

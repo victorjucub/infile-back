@@ -61,7 +61,7 @@ class UserRepository:
                         estado, usuario_creo, fecha_creo
                     ) VALUES (
                         UPPER(%(nombre)s), %(correo)s, %(usuario)s, %(clave)s, '2024-01-01', %(token_activate)s,
-                        0, %(usuario_creo)s, NOW()
+                        %(estado)s, %(usuario_creo)s, NOW()
                     )
                     RETURNING idusuario
                 """, params)
@@ -231,7 +231,8 @@ class UserRepository:
             with self.db.get_cursor() as cur:
                 cur.execute("""
                     UPDATE usuario SET
-                        estado = 1
+                        estado = 1,
+                        token_activate = NULL
                     WHERE idusuario = %(idusuario)s
                 """, params)
             self.db.commit()
