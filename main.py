@@ -4,7 +4,7 @@ from config.auth import get_current_user
 from config.connection import DBConnection
 # ------------ users
 from actions.userActions import UserActions
-from schema.userSchema import UserSchema, UserLoginSchema, UserUpdateSchema
+from schema.userSchema import UserSchema, UserLoginSchema, UserUpdateSchema, UserUpdateSchemaWhitPass
 
 # ------------ users
 from actions.newsActions import NewsActions
@@ -56,10 +56,16 @@ def saveUser(body:UserSchema):
     result = userActions.saveUser({**body.model_dump()})
     return result
 
-@app.put("/update-user/{idusuario}")
-def updateUser(req: Request, body:UserUpdateSchema, current_user: dict = Depends(get_current_user)):
+@app.put("/update-info-user/{idusuario}")
+def updateInfoUser(req: Request, body:UserUpdateSchema, current_user: dict = Depends(get_current_user)):
     # Se parsea a un objeto {} (body.model_dump)
-    result = userActions.updateUser({**body.model_dump(), **req.path_params})
+    result = userActions.updateInfoUser({**body.model_dump(), **req.path_params})
+    return result
+
+@app.put("/update-password-user/{idusuario}")
+def updatePasswordUser(req: Request, body:UserUpdateSchemaWhitPass, current_user: dict = Depends(get_current_user)):
+    # Se parsea a un objeto {} (body.model_dump)
+    result = userActions.updatePasswordUser({**body.model_dump(), **req.path_params})
     return result
 
 @app.delete("/delete-user/{idusuario}")

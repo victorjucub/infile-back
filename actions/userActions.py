@@ -114,7 +114,7 @@ class UserActions:
                 "rows": []
             }
     
-    def updateUser(self, params):
+    def updateInfoUser(self, params):
         try:
             print("[UserActions][updateInfoUser] -> Ejecutando proceso ")
             print(params)
@@ -122,7 +122,6 @@ class UserActions:
             idusuario = params.get("idusuario")
             
             resultUsuario = self.repo.existeUsuario(params)
-            print(" resultUsuario ::::::::::::::: ", resultUsuario)
             if len(resultUsuario)>0:
                 if int(resultUsuario[0]["idusuario"]) != int(idusuario):
                     return {
@@ -140,39 +139,80 @@ class UserActions:
                     "rows": []
                 }
 
-            clave = params.get("clave")
-
-            result = False
-            message = ""
-            if clave=="":
-                # Si la clave viene vacía, no actualiza contraseña
-                result = self.repo.updateInfoUser(params)
-                message = "[SIN CONTRASEÑA] Se actualizó correctamente el registro" if result else "[SIN CONTRASEÑA] No fue posible actualizar el registro"
-            else:
-                # Si la clave viene con valor, actualiza campos de contraseña
-                clave_ultima = params.get("clave_ultima")
-                clave_hash = hashlib.sha256(clave.encode("utf-8")).hexdigest()
-                clave_ultima_hash = hashlib.sha256(clave_ultima.encode("utf-8")).hexdigest()
-                params["clave"] = clave_hash
-                params["clave_ultima"] = clave_ultima_hash
-                
-                result = self.repo.updatePasswordUser(params)
-                message = "[CON CONTRASEÑA] Se actualizó correctamente el registro" if result else "[CON CONTRASEÑA] No fue posible actualizar el registro"
+            result = self.repo.updateInfoUser(params)
 
             if not result:
                 return {
                     "flag": "FAIL",
-                    "message": message,
+                    "message": "No fue posible actualizar el registro",
                     "rows": []
                 }
             
             return {
                 "flag": "OK",
-                "message": message,
+                "message": "Se actualizó correctamente el registro",
+                "rows": []
+            }
+        
+        except Exception as e:
+            print("[UserActions][updateInfoUser] -> Error en proceso ", e)
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+    
+    def updatePasswordUser(self, params):
+        try:
+            print("[UserActions][updatePasswordUser] -> Ejecutando proceso ")
+            
+            # Obtenemos la clave actual
+            resultCurrent = self.repo.getCurrentPassword(params)
+            print("resultCurrent ::::::::::::::::::::::::::: ", resultCurrent)
+            
+            currentPass = resultCurrent[0]["clave"]
+            lastPass = resultCurrent[0]["clave_ultima"]
+
+            # Recuperamos claves ingresadas por el usuario
+            clave_ultima = params.get("clave_ultima")
+            clave = params.get("clave")
+
+            clave_ultima_hash = hashlib.sha256(clave_ultima.encode("utf-8")).hexdigest()
+            clave_hash = hashlib.sha256(clave.encode("utf-8")).hexdigest()
+
+            if clave_ultima_hash != currentPass :
+                return {
+                    "flag": "FAIL",
+                    "message": "La clave ingresada como 'clave actual' no coincide con su contraseña actual, por favor, verifique la información",
+                    "rows": []
+                }
+            
+            if clave_hash == lastPass :
+                return {
+                    "flag": "FAIL",
+                    "message": "La clave indicada se ha usado recientemente, intente con una nueva contraseña",
+                    "rows": []
+                }
+
+            params["clave"] = clave_hash
+            params["clave_ultima"] = clave_ultima_hash
+            
+            result = self.repo.updatePasswordUser(params)
+
+            if not result:
+                return {
+                    "flag": "FAIL",
+                    "message": "No fue posible actualizar la contraseña",
+                    "rows": []
+                }
+            
+            return {
+                "flag": "OK",
+                "message": "Se actualizó correctamente la contraseña",
                 "rows": []
             }
         except Exception as e:
-            print("[UserActions][updateInfoUser] -> Error en proceso ", e)
+            print("[UserActions][updatePasswordUser] -> Error en proceso ", e)
             return {
                 "flag": "FAIL",
                 "message": e,

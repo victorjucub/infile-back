@@ -14,6 +14,10 @@ class UserUpdateSchema(BaseModel):
     nombre: str
     correo: str
     usuario: str
+    usuario_modifico: str
+
+class UserUpdateSchemaWhitPass(BaseModel):
+    idusuario: Optional[str]
     clave: Optional[str]
     clave_ultima: Optional[str]
     usuario_modifico: str

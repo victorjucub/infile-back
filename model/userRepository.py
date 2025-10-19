@@ -99,11 +99,8 @@ class UserRepository:
             with self.db.get_cursor() as cur:
                 cur.execute("""
                     UPDATE usuario SET
-                        nombre = %(nombre)s,
-                        correo = %(correo)s,
-                        usuario = %(usuario)s,
                         clave = %(clave)s,
-                        clave_vence = CURRENT_DATE + INTERVAL '6 months',
+                        clave_vence = CURRENT_DATE + INTERVAL '1 months',
                         clave_ultima = %(clave_ultima)s
                     WHERE idusuario = %(idusuario)s
                 """, params)
@@ -174,6 +171,22 @@ class UserRepository:
                         USR.correo
                     FROM usuario USR
                     WHERE USR.correo = %(correo)s
+                """, params)
+                return cur.fetchall()
+        except Exception as e:
+            print("[UserRepository][existeCorreo] -> Error al ejecutar query:", e)
+            return []
+
+    def getCurrentPassword(self, params):
+        try:
+            print("[UserRepository][existeCorreo] -> Ejecutando query ")
+            with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
+                cur.execute("""
+                    SELECT
+                        USR.clave,
+                        USR.clave_ultima
+                    FROM usuario USR
+                    WHERE USR.idusuario = %(idusuario)s
                 """, params)
                 return cur.fetchall()
         except Exception as e:
