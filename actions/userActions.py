@@ -1,5 +1,5 @@
 from model.userRepository import UserRepository
-from config.auth import createAccessToken, createPasswordRestoreToken, verifyAccessToken, createRefreshToken
+from config.auth import createAccessToken, createPasswordRestoreToken, verifyAccessToken, createRefreshToken, verifyRefreshToken
 from config.connection import DBConnection
 from service.emailService import EmailService
 from utils.generalUtils import GeneralUtils
@@ -334,7 +334,11 @@ class UserActions:
             return {
                 "flag": "OK",
                 "message": "Inicio de sesión correcto",
-                "rows": [{**result[0], "token": token, "refreshToken": refreshToken}]
+                "rows": [{
+                    **result[0],
+                    "token": token,
+                    "refreshToken": refreshToken
+                }]
             }
         except Exception as e:
             print("[UserActions][verifyCredentials] -> Error en proceso ", e)
@@ -346,6 +350,8 @@ class UserActions:
         
     def loginWithGoogle(self, params):
         try:
+            print("[UserActions][loginWithGoogle] -> Ejecutando proceso ")
+
             # Validar el token de Google
             idinfo = id_token.verify_oauth2_token(
                 params["id_token"],
@@ -386,7 +392,11 @@ class UserActions:
             userInfo = self.repo.fetchSpecificUser({"idusuario": idusuario})
 
             # genera token para que el usuario inice sesión
-            token = createAccessToken({"sub": idusuario})
+            recordarme = 'no'
+            token_data = {"sub": idusuario}  # payload del token
+            token = createAccessToken(token_data)
+            refreshToken = createRefreshToken(token_data, recordarme)
+            
             return {
                 "flag": "OK",
                 "message": "Inicio de sesión correcto",
@@ -395,11 +405,13 @@ class UserActions:
                     "nombre": userInfo[0]["nombre"],
                     "correo": userInfo[0]["correo"],
                     "usuario": userInfo[0]["usuario"],
-                    "token": token
+                    "token": token,
+                    "refreshToken": refreshToken,
                 }]
             }
 
         except Exception as e:
+            print("[UserActions][loginWithGoogle] -> Error en proceso ", e)
             return {
                 "flag": "FAIL",
                 "message": e,
@@ -526,83 +538,59 @@ class UserActions:
         
     def refreshToken(self, params):
         try:
-            print("[UserActions][restorePassword] -> Ejecutando proceso ")
+            print("[UserActions][refreshToken] -> Ejecutando proceso ")
 
-            # validamos que el token sea valido
-            token = params["process"]
-            resultVerifyToken = verifyAccessToken(token)
-            if resultVerifyToken is None:
+            refreshToken = params["refresh_token"]
+            payload = verifyRefreshToken(refreshToken)
+            if not payload:
                 return {
                     "flag": "FAIL",
-                    "message": "No es posible continuar, la solicitud para restablecer contraseña no es valida",
+                    "message": "Refresh token inválido",
                     "rows": []
                 }
             
-            # extraemos id de usuario
-            data = ast.literal_eval(resultVerifyToken["sub"])
-            idusuario = data["sub"]
-            resultInfo = self.repo.fetchSpecificUser({"idusuario": idusuario})
-
-            print('resultInfo :::::::: ', resultInfo)
-
-            # validamos correo
-            resultCorreo = self.repo.existeCorreo(params)
-            if not (len(resultCorreo)>0):
+            tokens = self.repo.getRefreshToken({"token": refreshToken})
+            if len(tokens) == 0 or not tokens[0]["estado"]:
                 return {
                     "flag": "FAIL",
-                    "message": "No es posible continuar, la solicitud para restablecer contraseña no es valida correo",
-                    "rows": []
-                }
-
-            print('resultCorreo :::::::: ', resultCorreo)
-
-            # validamos que el usuario que hace la solicitud coincida con el del token
-            equalIdusuario = resultInfo[0]["idusuario"] == resultCorreo[0]["idusuario"]
-            equalCorreo = resultInfo[0]["correo"] == resultCorreo[0]["correo"]
-            if (not equalIdusuario) or (not equalCorreo) :
-                return {
-                    "flag": "FAIL",
-                    "message": "No es posible continuar, la solicitud para restablecer contraseña no es valida",
+                    "message": "Refresh token revocado",
                     "rows": []
                 }
             
-            # Obtenemos la clave actual
-            resultCurrent = self.repo.getCurrentPassword({"idusuario": idusuario})
-            print("resultCurrent ::::::::::::::::::::::::::: ", resultCurrent)
-
-            currentPass = resultCurrent[0]["clave"]
-            lastPass = resultCurrent[0]["clave_ultima"]
-
-            # Recuperamos claves ingresadas por el usuario
-            clave = params.get("clave")
-            clave_hash = hashlib.sha256(clave.encode("utf-8")).hexdigest()
-
-            # validamos que no ingrese una clave usada anteriormente
-            if clave_hash == lastPass :
-                return {
-                    "flag": "FAIL",
-                    "message": "La clave indicada se ha usado recientemente, intente con una nueva contraseña",
-                    "rows": []
-                }
+            idusuario = payload["sub"]
+            new_access = createAccessToken(idusuario)
+            return {
+                "flag": "OK",
+                "message": "Token renovado",
+                "rows": [{"access_token": new_access}]
+            }
             
-            params["clave"] = clave_hash
-            params["clave_ultima"] = currentPass
+        except Exception as e:
+            print("[UserActions][refreshToken] -> Error en proceso ", e)
+            return {
+                "flag": "FAIL",
+                "message": e,
+                "rows": []
+            }
+        
+    def logout(self, params):
+        try:
+            print("[UserActions][logout] -> Ejecutando proceso ")
 
-            result = self.repo.updatePasswordUser({**params, "idusuario": idusuario})
+            result = self.repo.revokeRefreshToken(params)
             if not result:
                 return {
                     "flag": "FAIL",
-                    "message": "No fue posible actualizar la contraseña",
+                    "message": "No se pudo revocar el token",
                     "rows": []
                 }
-            
             return {
                 "flag": "OK",
-                "message": "Se actualizó correctamente la contraseña",
+                "message": "Sesión cerrada",
                 "rows": []
             }
         except Exception as e:
-            print("[UserActions][restorePassword] -> Error en proceso ", e)
+            print("[UserActions][logout] -> Error en proceso ", e)
             return {
                 "flag": "FAIL",
                 "message": e,

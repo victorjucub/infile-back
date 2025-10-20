@@ -38,3 +38,9 @@ class RestorePasswordSchema(BaseModel):
     correo: str
     clave: str
     process: str
+
+class RefreshTokenSchema(BaseModel):
+    refresh_token: str
+
+class RevokeSchema(BaseModel):
+    refresh_token: str

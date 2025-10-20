@@ -257,26 +257,26 @@ class UserRepository:
             self.db.rollback()
             return False
 
-    def getRefreshToken(self, token):
+    def getRefreshToken(self, params):
         try:
             with self.db.get_cursor(row_factory=psycopg.rows.dict_row) as cur:
                 cur.execute("""
                     SELECT * FROM refresh_tokens
                     WHERE token = %(token)s
-                """, {"token": token})
+                """, params)
                 return cur.fetchall()
         except Exception as e:
             print("getRefreshToken ->", e)
             return []
 
-    def revokeRefreshToken(self, token):
+    def revokeRefreshToken(self, params):
         try:
             with self.db.get_cursor() as cur:
                 cur.execute("""
                     UPDATE refresh_tokens
                     SET estado = FALSE
                     WHERE token = %(token)s
-                """, {"token": token})
+                """, params)
             self.db.commit()
             return True
         except Exception as e:

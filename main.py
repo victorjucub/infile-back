@@ -1,12 +1,11 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from config.auth import getCurrentUser, verifyRefreshToken, createAccessToken
 from config.connection import DBConnection
 # ------------ users
 from actions.userActions import UserActions
-from schema.userSchema import UserSchema, UserLoginSchema, UserUpdateSchema, UserUpdateSchemaWhitPass, GoogleLoginSchema, ForgotPasswordSchema, RestorePasswordSchema
+from schema.userSchema import UserSchema, UserLoginSchema, UserUpdateSchema, UserUpdateSchemaWhitPass, GoogleLoginSchema, ForgotPasswordSchema, RestorePasswordSchema, RefreshTokenSchema, RevokeSchema
 
 # ------------ users
 from actions.newsActions import NewsActions
@@ -98,32 +97,17 @@ def restorePassword(body:RestorePasswordSchema):
     return result
 
 
-class RefreshTokenSchema(BaseModel):
-    refresh_token: str
-
 @app.post("/refresh-token")
-def refresh_token(body: RefreshTokenSchema):
-    payload = verifyRefreshToken(body.refresh_token)
-    if not payload:
-        return {"flag": "FAIL", "message": "Refresh token inválido", "rows": []}
-
-    tokens = userActions.repo.getRefreshToken(body.refresh_token)
-    if len(tokens) == 0 or not tokens[0]["estado"]:
-        return {"flag": "FAIL", "message": "Refresh token revocado", "rows": []}
-
-    idusuario = payload["sub"]
-    new_access = createAccessToken(idusuario)
-    return {"flag": "OK", "message": "Token renovado", "rows": [{"access_token": new_access}]}
-
-class RevokeSchema(BaseModel):
-    refresh_token: str
+def refreshToken(body:RefreshTokenSchema):
+    # Se parsea a un objeto {} (body.model_dump)
+    result = userActions.refreshToken({**body.model_dump()})
+    return result
 
 @app.post("/logout")
-def logout(body: RevokeSchema):
-    ok = userActions.repo.revokeRefreshToken(body.refresh_token)
-    if not ok:
-        return {"flag": "FAIL", "message": "No se pudo revocar el token", "rows": []}
-    return {"flag": "OK", "message": "Sesión cerrada", "rows": []}
+def logout(body:RevokeSchema):
+    # Se parsea a un objeto {} (body.model_dump)
+    result = userActions.logout({**body.model_dump()})
+    return result
 
 # ------------------------------------------------- NOTICES
 

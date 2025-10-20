@@ -68,8 +68,8 @@ def createPasswordRestoreToken(user_id: int):
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
-
 def createRefreshToken(user_id: int, remember_me: str = 'no'):
+    print('[auth][createRefreshToken] remember_me ::::::::::::: ', remember_me)
     if remember_me == 'si':
         expire = datetime.utcnow() + timedelta(days=NEVER_EXPIRE)
     else:
