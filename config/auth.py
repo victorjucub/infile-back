@@ -71,9 +71,11 @@ def createPasswordRestoreToken(user_id: int):
 def createRefreshToken(user_id: int, remember_me: str = 'no'):
     print('[auth][createRefreshToken] remember_me ::::::::::::: ', remember_me)
     if remember_me == 'si':
+        print('marco si recordar NEVER_EXPIRE ::::::::::::: ', NEVER_EXPIRE)
         expire = datetime.utcnow() + timedelta(days=NEVER_EXPIRE)
     else:
-        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        print('marco no recordar NEVER_EXPIRE ::::::::::::: ', NEVER_EXPIRE)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": str(user_id),
         "exp": expire
