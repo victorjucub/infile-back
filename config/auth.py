@@ -74,7 +74,7 @@ def createRefreshToken(user_id: int, remember_me: str = 'no'):
         print('marco si recordar NEVER_EXPIRE ::::::::::::: ', NEVER_EXPIRE)
         expire = datetime.utcnow() + timedelta(days=NEVER_EXPIRE)
     else:
-        print('marco no recordar NEVER_EXPIRE ::::::::::::: ', NEVER_EXPIRE)
+        print('marco no recordar ACCESS_TOKEN_EXPIRE_MINUTES ::::::::::::: ', ACCESS_TOKEN_EXPIRE_MINUTES)
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": str(user_id),

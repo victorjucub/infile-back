@@ -396,6 +396,9 @@ class UserActions:
             token_data = {"sub": idusuario}  # payload del token
             token = createAccessToken(token_data)
             refreshToken = createRefreshToken(token_data, recordarme)
+
+            # guardar refresh token en BD
+            self.repo.saveRefreshToken({"idusuario": idusuario, "token": refreshToken})
             
             return {
                 "flag": "OK",
